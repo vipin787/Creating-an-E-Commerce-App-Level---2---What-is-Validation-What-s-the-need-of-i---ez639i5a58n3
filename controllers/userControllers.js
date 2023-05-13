@@ -29,7 +29,33 @@ If no users are found, the function should return a JSON response with a status 
 */
 const getAllUsers = async (req, res) => {
     try {
-        // Implement the function here
+        let {limit,page} = req.query;
+
+        if(isNaN(limit)) limit = 5
+        if(isNaN(page)) page = 1
+
+        limit ??= 5
+        page ??= 1 
+
+        limit = Number(limit)
+        page = Number(page)
+        
+        let user = await User.find().limit(limit * 1).skip((page - 1) * limit)
+        if(!user){
+            return res.status(404).send({
+                "message": "Users Not Found",
+                "status": "Error",
+                "error": new Error()
+                })
+        }
+        res.status(200).send({
+            "status": "success",
+            "data": {
+                "count": 15,
+                 "users": user
+            }
+        });
+
     } catch (err) {
         res.status(404).json({
             message: "Users Not Found",
@@ -69,7 +95,23 @@ If an error occurs during the retrieval, the function should return a JSON respo
 */
 const getUserByID = async (req, res) => {
     try {
-        // Implement the function here
+       
+        let founduser = await User.findById(req.params.id);
+        
+        if (!founduser) {
+            return res.status(404).json({
+                status: "Error",
+                message: "User Not Found",
+            });
+        }
+
+        res.status(200).send({
+            "status": "success",
+            "data": {               
+                "user": founduser
+            }
+        })
+
     } catch (err) {
         res.status(400).json({
             message: "User Fetching Failed",
@@ -110,8 +152,28 @@ If an error occurs during the creation, the function should return a JSON respon
 */
 const createUser = async (req, res) => {
     try {
-        // Implement the function here
-    } catch (err) {
+        const {username,email,password,role} = req.body
+        if(!username || !email || !password || !role){
+           return res.status(400).send({
+                
+                "message": "User Creation Failed",
+                "status": "Error",
+                "error": "Fill all Fields"
+                
+            })
+        }
+        let user = new User({username,email,password})
+        await user.save()
+
+        res.status(201).send({
+            "status": "success",
+            "message": "User Created Successfully",
+            "data": {
+                "user": user
+            }
+        })
+    } 
+    catch (err) {
         res.status(400).json({
             message: "User Creation failed",
             status: "Error",
@@ -156,7 +218,23 @@ If an error occurs during the updation, the function should return a JSON respon
 */
 const updateUser = async (req, res) => {
     try {
-        // Write your function here
+        let id = req.params.id       
+        const user = await User.findByIdAndUpdate(
+        id,
+        { $set: req.body.updatedData }
+        )
+        if(!user){
+            return res.status(404).send({"message": "User Not Found",
+            "status": "Error",})
+        }
+
+        res.status(200).send({
+            "status": "success",
+            "message": "User Updated Successfully",
+            "data": {
+            "updatedUser": user }
+        })
+       
     } catch (err) {
         res.status(400).json({
             message: "User Updation Failed",
@@ -197,7 +275,19 @@ If an error occurs during the deletion, the function should return a JSON respon
 */
 const deleteUser = async (req, res) => {
     try {
-        // Write your function here.
+        const user = await User.findByIdAndDelete(req.params.id);
+        if(!user){
+            return res.status(404).send({
+                "message": "User Not Found",
+                "status": "Error",
+            })
+        }
+        res.status(201).send({
+            "status": "success",
+            "message": "User Deleted Successfully",
+            "data": {
+                "user": user }
+        })
     } catch (err) {
         res.status(400).json({
             message: "User Deletion Failed",
@@ -208,4 +298,3 @@ const deleteUser = async (req, res) => {
 };
 
 module.exports = { getAllUsers, getUserByID, createUser, updateUser, deleteUser };
-
